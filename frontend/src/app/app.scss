@@ -1,0 +1,32 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 2rem;
+  background: var(--primary-dark);
+  color: #fff;
+
+  .brand {
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  nav a {
+    color: #cfe0f1;
+    margin-left: 1.5rem;
+    padding-bottom: 2px;
+
+    &.active {
+      color: #fff;
+      border-bottom: 2px solid #fff;
+    }
+  }
+}
+
+.footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 2rem 0 1rem;
+}

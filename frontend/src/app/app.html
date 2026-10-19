@@ -1,0 +1,13 @@
+<header class="topbar">
+  <a routerLink="/" class="brand">⚗️ LabTrack</a>
+  <nav>
+    <a routerLink="/dashboard" routerLinkActive="active">Painel</a>
+    <a routerLink="/samples" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">Amostras</a>
+  </nav>
+</header>
+
+<main class="container">
+  <router-outlet />
+</main>
+
+<footer class="footer">LabTrack · Controle de qualidade laboratorial · .NET 8 + Angular</footer>
