@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+.vs/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+
+# IDE / SO
+.idea/
+.DS_Store
+Thumbs.db
