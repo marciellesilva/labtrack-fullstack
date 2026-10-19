@@ -1,4 +1,6 @@
-# ⚗️ LabTrack: Gestão de Amostras de Laboratório
+# ⚗️ LabTrack: Laboratory Sample Management
+
+🇧🇷 [Leia em português](README.pt-BR.md)
 
 ![.NET](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
@@ -10,135 +12,135 @@
 ![AWS SQS](https://img.shields.io/badge/AWS-SQS-FF9900?logo=amazonsqs&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Sistema full stack de **controle de qualidade laboratorial** para a indústria química. Ele registra
-amostras de lotes de produção e seus resultados de análise (pH, viscosidade, concentração, densidade…)
-e compara cada valor com os **limites de especificação**. Se algum resultado ficar fora da faixa,
-a amostra é **reprovada automaticamente** e um **evento é publicado** (AWS SQS) para notificar a equipe.
+A full stack **laboratory quality control** system for the chemical industry. It records samples
+from production batches and their analysis results (pH, viscosity, concentration, density…), then
+compares each value against its **specification limits**. If any result falls outside the range,
+the sample is **automatically rejected** and an **event is published** (AWS SQS) to notify the team.
 
-> Projeto que une minha formação em **Engenharia Química** com **desenvolvimento de software**.
+> A project that combines my background in **Chemical Engineering** with **software development**.
 
-## ✨ Funcionalidades
+## ✨ Features
 
-- **Painel de qualidade** com amostras aprovadas, reprovadas e pendentes, taxa de aprovação e últimos desvios
-- **Cadastro de amostras** (código, produto, lote, data de coleta, observações), com edição e exclusão
-- **Registro de resultados** com limites mínimo e máximo opcionais
-- **Regra de negócio no domínio:** sem resultados = *Pendente*; algum fora da especificação = *Reprovada*; todos dentro = *Aprovada*
-- **Busca reativa** por código, produto ou lote, com filtro por status (RxJS `debounceTime` + `switchMap`)
-- **Evento de integração** `OutOfSpecDetected` publicado no **Amazon SQS**, que pode ser consumido, por exemplo, por uma AWS Lambda
-- Erros padronizados em **ProblemDetails (RFC 7807)**: 400, 404, 409 e 422
+- **Quality dashboard** with approved, rejected and pending samples, approval rate and latest deviations
+- **Sample management** (code, product, batch, collection date, notes), including edit and delete
+- **Analysis results** with optional minimum and maximum limits
+- **Business rule in the domain:** no results = *Pending*; any out-of-spec result = *Rejected*; all within spec = *Approved*
+- **Reactive search** by code, product or batch, with a status filter (RxJS `debounceTime` + `switchMap`)
+- **Integration event** `OutOfSpecDetected` published to **Amazon SQS**, ready to be consumed by an AWS Lambda, for example
+- Standardized errors using **ProblemDetails (RFC 7807)**: 400, 404, 409 and 422
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
 ```mermaid
 flowchart LR
     subgraph Frontend["Frontend - Angular 22"]
-        UI["Páginas standalone<br/>Signals + RxJS"] --> SVC["SampleService<br/>HttpClient"]
+        UI["Standalone pages<br/>Signals + RxJS"] --> SVC["SampleService<br/>HttpClient"]
     end
     subgraph Backend["Backend - ASP.NET Core 8"]
-        API["Api<br/>Controllers, Swagger,<br/>ProblemDetails"] --> APP["Application<br/>Serviços, DTOs, validação"]
-        APP --> DOM["Domain<br/>Entidades e regras"]
-        INF["Infrastructure<br/>EF Core, Repositório,<br/>Publicador SQS"] --> APP
+        API["Api<br/>Controllers, Swagger,<br/>ProblemDetails"] --> APP["Application<br/>Services, DTOs, validation"]
+        APP --> DOM["Domain<br/>Entities and rules"]
+        INF["Infrastructure<br/>EF Core, Repository,<br/>SQS publisher"] --> APP
     end
     SVC -- "/api (Nginx proxy)" --> API
     INF --> DB[("SQL Server")]
-    INF -. "evento fora de espec." .-> SQS[["Amazon SQS"]]
+    INF -. "out-of-spec event" .-> SQS[["Amazon SQS"]]
 ```
 
-Arquitetura em camadas (inspirada em *Clean Architecture*): o **Domain** não depende de nada,
-a **Application** define as interfaces (`ISampleRepository`, `IEventPublisher`) e a **Infrastructure** as implementa.
+Layered architecture inspired by *Clean Architecture*. The **Domain** has no dependencies,
+the **Application** layer defines the interfaces (`ISampleRepository`, `IEventPublisher`) and the **Infrastructure** layer implements them.
 
 ```
 labtrack-fullstack/
 ├── backend/
 │   ├── src/
-│   │   ├── LabTrack.Domain/          # Entidades Sample, AnalysisResult e regra de status
-│   │   ├── LabTrack.Application/     # SampleService, DTOs, exceções, interfaces
-│   │   ├── LabTrack.Infrastructure/  # DbContext, migrations, seed, repositório, SQS
-│   │   └── LabTrack.Api/             # Controllers, Program.cs, tratamento de erros
+│   │   ├── LabTrack.Domain/          # Sample and AnalysisResult entities, status rule
+│   │   ├── LabTrack.Application/     # SampleService, DTOs, exceptions, interfaces
+│   │   ├── LabTrack.Infrastructure/  # DbContext, migrations, seed, repository, SQS
+│   │   └── LabTrack.Api/             # Controllers, Program.cs, error handling
 │   └── tests/
-│       ├── LabTrack.UnitTests/        # xUnit: domínio + serviço (SQLite em memória)
-│       └── LabTrack.IntegrationTests/ # xUnit + WebApplicationFactory (API completa)
+│       ├── LabTrack.UnitTests/        # xUnit: domain + service (in-memory SQLite)
+│       └── LabTrack.IntegrationTests/ # xUnit + WebApplicationFactory (full API)
 ├── frontend/                          # Angular 22 (standalone, signals, RxJS, Vitest)
 ├── docker-compose.yml                 # SQL Server + API + Web (Nginx)
-└── .github/workflows/ci.yml           # Build, testes e imagens Docker
+└── .github/workflows/ci.yml           # Build, tests and Docker images
 ```
 
 ## 🔌 Endpoints
 
-| Método | Rota | Descrição |
+| Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/samples?search=&status=` | Lista amostras (busca e filtro por `Pending`, `Approved` ou `Rejected`) |
-| `GET` | `/api/samples/{id}` | Detalha a amostra com resultados |
-| `POST` | `/api/samples` | Cria amostra (`409` se o código já existir) |
-| `PUT` | `/api/samples/{id}` | Atualiza amostra |
-| `DELETE` | `/api/samples/{id}` | Remove amostra e resultados |
-| `POST` | `/api/samples/{id}/results` | Registra resultado (`422` se mínimo > máximo) |
-| `GET` | `/api/dashboard` | Indicadores de qualidade |
-| `GET` | `/health` | Health check (inclui banco de dados) |
+| `GET` | `/api/samples?search=&status=` | List samples (search and filter by `Pending`, `Approved` or `Rejected`) |
+| `GET` | `/api/samples/{id}` | Get a sample with its results |
+| `POST` | `/api/samples` | Create a sample (`409` if the code already exists) |
+| `PUT` | `/api/samples/{id}` | Update a sample |
+| `DELETE` | `/api/samples/{id}` | Delete a sample and its results |
+| `POST` | `/api/samples/{id}/results` | Add an analysis result (`422` if minimum > maximum) |
+| `GET` | `/api/dashboard` | Quality indicators |
+| `GET` | `/health` | Health check (includes the database) |
 
-A documentação interativa fica disponível no **Swagger** em `/swagger`.
+Interactive documentation is available in **Swagger** at `/swagger`.
 
-## 🚀 Como executar
+## 🚀 Getting started
 
-### Opção 1: Docker Compose (recomendado)
+### Option 1: Docker Compose (recommended)
 
 ```bash
 docker compose up --build
 ```
 
-| Serviço | URL |
+| Service | URL |
 | --- | --- |
 | Front-end | http://localhost:4200 |
 | API + Swagger | http://localhost:5080/swagger |
-| SQL Server | `localhost,1433` (usuário `sa`) |
+| SQL Server | `localhost,1433` (user `sa`) |
 
-As migrations são aplicadas automaticamente e o banco já sobe com amostras de exemplo.
+Migrations are applied automatically and the database starts with sample data.
 
-### Opção 2: Localmente
+### Option 2: Run locally
 
-Pré-requisitos: [.NET 8 SDK](https://dotnet.microsoft.com/download), [Node.js 24](https://nodejs.org) e SQL Server (local ou via `docker compose up db`).
+Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download), [Node.js 24](https://nodejs.org) and SQL Server (local or via `docker compose up db`).
 
 ```bash
 # Back-end (http://localhost:5080/swagger)
 cd backend
 dotnet run --project src/LabTrack.Api
 
-# Front-end (http://localhost:4200), em outro terminal
+# Front-end (http://localhost:4200), in another terminal
 cd frontend
 npm install
 npm start
 ```
 
-Em desenvolvimento, o Angular redireciona `/api` para a API via `proxy.conf.json`.
+During development, Angular forwards `/api` requests to the API through `proxy.conf.json`.
 
-### Publicação de eventos no AWS SQS
+### Publishing events to AWS SQS
 
-Por padrão, os eventos são apenas registrados no log, então você não precisa de conta AWS. Para publicar numa fila real:
+By default, events are only written to the log, so no AWS account is needed. To publish to a real queue:
 
 ```bash
 Messaging__Provider=Sqs
 Messaging__SqsQueueUrl=https://sqs.us-east-1.amazonaws.com/123456789012/labtrack-out-of-spec
-AWS_REGION=us-east-1   # credenciais pela cadeia padrão da AWS (env, perfil ou IAM role)
+AWS_REGION=us-east-1   # credentials come from the default AWS chain (env, profile or IAM role)
 ```
 
-## ✅ Testes
+## ✅ Tests
 
 ```bash
-cd backend && dotnet test          # 26 testes: unitários + integração
+cd backend && dotnet test          # 26 tests: unit + integration
 cd frontend && npx ng test --watch=false
 ```
 
-- **Unitários:** regras de especificação e status, além do serviço (código duplicado, evento publicado, dashboard)
-- **Integração:** a API completa em memória com `WebApplicationFactory` e SQLite, cobrindo fluxo de ponta a ponta, validação 400, 404, 409, 422 e health check
+- **Unit:** specification and status rules, plus the service (duplicate code, event publishing, dashboard)
+- **Integration:** the full API running in memory with `WebApplicationFactory` and SQLite, covering the end-to-end flow, 400, 404, 409 and 422 responses, and the health check
 
-## 🛠️ Tecnologias
+## 🛠️ Tech stack
 
 **Back-end:** C# · ASP.NET Core 8 Web API · Entity Framework Core 8 · SQL Server · Swagger · AWS SDK (SQS) · xUnit
 **Front-end:** Angular 22 · TypeScript · RxJS · Signals · Reactive Forms · Vitest
 **DevOps:** Docker (multi-stage) · Docker Compose · Nginx · GitHub Actions
 
-## 👩‍💻 Autora
+## 👩‍💻 Author
 
 **Marcielle Santos**: [LinkedIn](https://www.linkedin.com/in/marciellesantos-dev) · marcielle.san@gmail.com
 
-Licença [MIT](LICENSE).
+[MIT](LICENSE) License.
